@@ -106,7 +106,7 @@ class BlastPp2Sc:
 
             for hsp in align.hsps:
                 percent_identity = hsp.identities / hsp.align_length * 100
-                query_cover = hsp.align_length / record.query_length * 100
+                query_cover = (hsp.query_end - hsp.query_start + 1) / record.query_length * 100
                 e_value = hsp.expect
 
                 return (
