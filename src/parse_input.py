@@ -1,8 +1,10 @@
+from typing import List, Optional
+
 import pandas as pd
 
 
 class ParseInput:
-    def __init__(self, input_file: str = None):
+    def __init__(self, input_file: Optional[str] = None):
         self.input_file = input_file
 
     def pandas_parser(self, separator):
@@ -23,13 +25,13 @@ class ParseInput:
 
         return pichia_genes.to_list()
 
-    def csv_input(self) -> list:
+    def csv_input(self) -> List[str]:
         return self.pandas_parser(",")
 
-    def tsv_input(self) -> list:
+    def tsv_input(self) -> List[str]:
         return self.pandas_parser("\t")
 
-    def run(self):
+    def run(self) -> List[str]:
         if self.input_file is None:
             raise ValueError("Нужны входные данные")
 

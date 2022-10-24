@@ -1,9 +1,13 @@
+from typing import List, Optional
+
 import pandas as pd
 from tqdm import tqdm
 
+from src.types import PichiaFullData
+
 
 class GenerateOutput:
-    def __init__(self, result, output: str = None):
+    def __init__(self, result: List[PichiaFullData], output: Optional[str] = None):
         self.result = result
         self.output = output
 
@@ -14,26 +18,28 @@ class GenerateOutput:
                 "Pichia description": [],
                 "Pichia protein ID": [],
                 "Saccharomyces accession ID": [],
-                "Saccharomyces description": [],
+                "Saccharomyces protein name": [],
                 "Query Cover": [],
                 "E-value": [],
                 "Per. Ident": [],
                 "Acc. Len": [],
+                "SGD description": [],
             }
         )
 
         for gene in tqdm(self.result):
             row = pd.DataFrame(
                 {
-                    "Pichia gene ID": [gene],
-                    "Pichia description": [self.result[gene][1]],
-                    "Pichia protein ID": [self.result[gene][2]],
-                    "Saccharomyces accession ID": [self.result[gene][3]],
-                    "Saccharomyces description": [self.result[gene][4]],
-                    "Query Cover": [self.result[gene][5]],
-                    "E-value": [self.result[gene][6]],
-                    "Per. Ident": [self.result[gene][7]],
-                    "Acc. Len": [self.result[gene][8]],
+                    "Pichia gene ID": [gene.pp_gene_id],
+                    "Pichia description": [gene.pp_description],
+                    "Pichia protein ID": [gene.pp_protein_id],
+                    "Saccharomyces accession ID": [gene.sc_accession],
+                    "Saccharomyces protein name": [gene.sc_description],
+                    "Query Cover": [gene.query_cover],
+                    "E-value": [gene.e_value],
+                    "Per. Ident": [gene.per_ident],
+                    "Acc. Len": [gene.acc_le],
+                    "SGD description": [gene.sgd_description],
                 }
             )
 
