@@ -1,19 +1,9 @@
-import re
-from typing import List, Optional
+from typing import List
 
 from pygenome import sg
 
 from src.types import PichiaBlastFullData, PichiaFullData
-
-
-def parse_gene_name(description: str) -> Optional[str]:
-    pattern = r"(?P<gene_name>[a-zA-Z]{3}\d{1,2})"
-    res = re.search(pattern=pattern, string=description)
-
-    if res is None:
-        return None
-
-    return res.group()
+from src.utils import parse_gene_name
 
 
 def add_sgd_data(pichia_blast_data: List[PichiaBlastFullData]) -> List[PichiaFullData]:
@@ -27,7 +17,7 @@ def add_sgd_data(pichia_blast_data: List[PichiaBlastFullData]) -> List[PichiaFul
 
         try:
             sgd_res = sg.stdgene[sc_gene_name]
-        except KeyError:
+        except Exception:
             sgd_description = None
         else:
             sgd_description = sgd_res.short_description

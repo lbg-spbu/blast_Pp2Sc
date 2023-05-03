@@ -3,6 +3,7 @@ import tempfile
 from io import StringIO
 from time import sleep
 from typing import Generator, List, Literal, Union
+from urllib.error import HTTPError
 
 from Bio import Entrez, SeqIO
 from Bio.Blast import NCBIWWW, NCBIXML
@@ -10,6 +11,7 @@ from Bio.Blast.Applications import NcbiblastpCommandline
 
 from settings import DB_BASE_FILE, TMP_FILES_FOLDER
 from src.types import PichiaBlastFullData, PichiaXP, SaccharomycesBlast
+from src.utils import retries
 
 
 class BlastPp2Sc:
@@ -26,6 +28,20 @@ class BlastPp2Sc:
         self.pichia_genes = pichia_genes
         self.full_result: List[PichiaBlastFullData] = []
 
+    @staticmethod
+    @retries(times=6, delay=3)
+    def entrez_esearch(term):
+        with Entrez.esearch(db="gene", term=term) as handle:
+            search_record = Entrez.read(handle)
+        return search_record
+
+    @staticmethod
+    @retries(times=6, delay=3)
+    def entrez_efetch(db, id, retmode, **kwargs):
+        with Entrez.efetch(db=db, id=id, retmode=retmode, **kwargs) as handle:
+            gene_record = Entrez.read(handle)
+        return gene_record
+
     def get_xp_from_pas(self) -> Generator[PichiaXP, None, None]:
         # TODO description
         """
@@ -40,17 +56,26 @@ class BlastPp2Sc:
             # TODO logging
             print(f"{i + 1}/{len(self.pichia_genes)} - Process gene - '{gene}'")
 
-            sleep(0.1)
-            with Entrez.esearch(db="gene", term=gene) as handle:
-                search_record = Entrez.read(handle)
+            search_record = self.entrez_esearch(gene)
+
+            # with Entrez.esearch(db="gene", term=gene) as handle:
+            #     search_record = Entrez.read(handle)
 
             gene_id = search_record["IdList"][0]
 
-            sleep(0.1)
-            with Entrez.efetch(db="gene", id=gene_id, retmode="xml") as handle:
-                gene_record = Entrez.read(handle)
+            # with Entrez.efetch(db="gene", id=gene_id, retmode="xml") as handle:
+            #     gene_record = Entrez.read(handle)
 
-            protein_name = gene_record[0]["Entrezgene_prot"]["Prot-ref"]["Prot-ref_name"][0]
+            gene_record = self.entrez_efetch(db="gene", id=gene_id, retmode="xml")
+   
+            try:
+                protein_description = gene_record[0]["Entrezgene_prot"]["Prot-ref"]["Prot-ref_name"][0]
+            except KeyError:
+                try:
+                    protein_description = gene_record[0]["Entrezgene_prot"]["Prot-ref"]["Prot-ref_desc"]
+                except KeyError:
+                    protein_description = None
+            
             protein_info = gene_record[0]["Entrezgene_locus"][0][
                 "Gene-commentary_products"
             ][0]["Gene-commentary_products"][0]
@@ -62,7 +87,7 @@ class BlastPp2Sc:
             yield PichiaXP(
                 pp_gene_name=gene,
                 pp_gene_id=gene_id,
-                pp_description=protein_name,
+                pp_description=protein_description,
                 pp_protein_id=prot_accession,
             )
 
@@ -129,7 +154,7 @@ class BlastPp2Sc:
                         outfmt=5,
                     )
 
-                sleep(0.5)
+                sleep(0.3)
                 blast = StringIO(blastp_cline()[0])
 
             elif option == "net":
@@ -162,10 +187,11 @@ class BlastPp2Sc:
             )
 
     def run(self, option: Union[Literal["local"], Literal["net"]] = "local") -> List[PichiaBlastFullData]:
-        self.protein_blast_pp2sc(option)
-
-        if option == "local":
-            for tmp_files in os.listdir(TMP_FILES_FOLDER):
-                os.remove(os.path.join(TMP_FILES_FOLDER, tmp_files))
+        try:
+            self.protein_blast_pp2sc(option)
+        finally:
+            if option == "local":
+                for tmp_files in os.listdir(TMP_FILES_FOLDER):
+                    os.remove(os.path.join(TMP_FILES_FOLDER, tmp_files))
 
         return self.full_result

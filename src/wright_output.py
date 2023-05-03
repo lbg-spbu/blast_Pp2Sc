@@ -14,6 +14,7 @@ class GenerateOutput:
     def pandas_save(self) -> pd.DataFrame:
         data = pd.DataFrame(
             {
+                "Pichia gene name": [],
                 "Pichia gene ID": [],
                 "Pichia description": [],
                 "Pichia protein ID": [],
@@ -30,6 +31,7 @@ class GenerateOutput:
         for gene in tqdm(self.result):
             row = pd.DataFrame(
                 {
+                    "Pichia gene name": [gene.pp_gene_name],
                     "Pichia gene ID": [gene.pp_gene_id],
                     "Pichia description": [gene.pp_description],
                     "Pichia protein ID": [gene.pp_protein_id],
@@ -52,13 +54,13 @@ class GenerateOutput:
         print(self.result)
 
     def csv_output(self):
-        print("Generating output table")
+        print("Generating output table in .csv")
         data = self.pandas_save()
         print("Saving table")
         data.to_csv(self.output, sep=",")
 
     def tsv_output(self):
-        print("Generating output table")
+        print("Generating output table in .tsv")
         data = self.pandas_save()
         print("Saving table")
 
