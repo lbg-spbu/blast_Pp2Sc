@@ -1,8 +1,13 @@
 from src.cli import parse_cli
 from src.parse_input import ParseInput
-from src.pp2sc import BlastPp2Sc
+from src.pp2sc_blast import BlastPp2Sc
+from src.sgd import add_sgd_data
 from src.wright_output import GenerateOutput
 
+# TODO
+#   logging
+#   save data into sqlite and restart (save state)
+#   starting info
 
 def main():
     parse_res = parse_cli()
@@ -18,9 +23,11 @@ def main():
         if any((not gene.startswith("PAS") for gene in pichia_genes)):
             raise ValueError("Гены должны начинаться на PAS")
 
-    result = BlastPp2Sc(pichia_genes=pichia_genes).run()
+    blast_result = BlastPp2Sc(pichia_genes=pichia_genes).run()
 
-    GenerateOutput(result=result, output=output_file).run()
+    whole_result = add_sgd_data(blast_result)
+
+    GenerateOutput(result=whole_result, output=output_file).run()
 
     print("============= Done ============")
 

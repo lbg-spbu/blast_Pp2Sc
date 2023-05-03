@@ -1,6 +1,11 @@
 import argparse
 import sys
 
+# TODO
+#   add base path
+#   add option for blast (local / net)
+#   translate
+
 
 def parse_cli():
     """
