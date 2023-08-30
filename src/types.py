@@ -26,5 +26,6 @@ class PichiaBlastFullData(PichiaXP, SaccharomycesBlast):
 
 
 @dataclass
-class PichiaFullData(PichiaBlastFullData):
+class PichiaSGD:
+    pp_gene_name: str
     sgd_description: Optional[str]

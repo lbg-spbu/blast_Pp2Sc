@@ -18,15 +18,11 @@ def parse_cli():
     output_file_name = None
     list_genes = []
 
-    parser = argparse.ArgumentParser(
-        description="BLAST Picha pastoris genes (PAS_...) vs Saccharomyces cerevisiae"
-    )
+    parser = argparse.ArgumentParser(description="BLAST Picha pastoris genes (PAS_...) vs Saccharomyces cerevisiae")
 
     parser.add_argument("args", nargs=argparse.REMAINDER)
 
-    parser.add_argument(
-        "stdin", nargs="?", type=argparse.FileType("r"), default=sys.stdin
-    )
+    parser.add_argument("stdin", nargs="?", type=argparse.FileType("r"), default=sys.stdin)
 
     parser.add_argument(
         "-f",

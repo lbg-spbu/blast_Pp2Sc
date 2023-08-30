@@ -12,9 +12,7 @@ class ParseInput:
 
         if "id" not in data.columns:
             if "gene" not in data.columns:
-                raise ValueError(
-                    "В табличке не вижу столбца с генами. Должен быть либо 'id', либо 'gene'"
-                )
+                raise ValueError("В табличке не вижу столбца с генами. Должен быть либо 'id', либо 'gene'")
             else:
                 pichia_genes = data["gene"]
         else:

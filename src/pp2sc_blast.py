@@ -3,13 +3,12 @@ import tempfile
 from io import StringIO
 from time import sleep
 from typing import Generator, List, Literal, Union
-from urllib.error import HTTPError
 
 from Bio import Entrez, SeqIO
 from Bio.Blast import NCBIWWW, NCBIXML
 from Bio.Blast.Applications import NcbiblastpCommandline
 
-from settings import DB_BASE_FILE, TMP_FILES_FOLDER
+from settings import DB_BASE_FILE, EMAIL, TMP_FILES_FOLDER
 from src.types import PichiaBlastFullData, PichiaXP, SaccharomycesBlast
 from src.utils import retries
 
@@ -22,31 +21,39 @@ class BlastPp2Sc:
     3. Возвращаем данные - result
     """
 
-    EMAIL = "antonsidorin@list.ru"  # TODO get from CLI
+    EMAIL = EMAIL
 
     def __init__(self, pichia_genes: List[str]):
         self.pichia_genes = pichia_genes
         self.full_result: List[PichiaBlastFullData] = []
 
+    def run(self, option: Union[Literal["local"], Literal["net"]] = "local") -> List[PichiaBlastFullData]:
+        try:
+            self._protein_blast_pp2sc(option)
+        finally:
+            if option == "local":
+                for tmp_files in os.listdir(TMP_FILES_FOLDER):
+                    os.remove(os.path.join(TMP_FILES_FOLDER, tmp_files))
+
+        return self.full_result
+
     @staticmethod
     @retries(times=6, delay=3)
-    def entrez_esearch(term):
+    def _entrez_esearch(term):
         with Entrez.esearch(db="gene", term=term) as handle:
             search_record = Entrez.read(handle)
         return search_record
 
     @staticmethod
     @retries(times=6, delay=3)
-    def entrez_efetch(db, id, retmode, **kwargs):
+    def _entrez_efetch(db, id, retmode, **kwargs):
         with Entrez.efetch(db=db, id=id, retmode=retmode, **kwargs) as handle:
             gene_record = Entrez.read(handle)
         return gene_record
 
-    def get_xp_from_pas(self) -> Generator[PichiaXP, None, None]:
+    def _get_xp_from_pas(self) -> Generator[PichiaXP, None, None]:
         # TODO description
-        """
-
-        """
+        """ """
         if len(self.pichia_genes) == 0:
             raise ValueError("Список генов пустой")  # TODO translate
 
@@ -56,18 +63,10 @@ class BlastPp2Sc:
             # TODO logging
             print(f"{i + 1}/{len(self.pichia_genes)} - Process gene - '{gene}'")
 
-            search_record = self.entrez_esearch(gene)
-
-            # with Entrez.esearch(db="gene", term=gene) as handle:
-            #     search_record = Entrez.read(handle)
-
+            search_record = self._entrez_esearch(gene)
             gene_id = search_record["IdList"][0]
+            gene_record = self._entrez_efetch(db="gene", id=gene_id, retmode="xml")
 
-            # with Entrez.efetch(db="gene", id=gene_id, retmode="xml") as handle:
-            #     gene_record = Entrez.read(handle)
-
-            gene_record = self.entrez_efetch(db="gene", id=gene_id, retmode="xml")
-   
             try:
                 protein_description = gene_record[0]["Entrezgene_prot"]["Prot-ref"]["Prot-ref_name"][0]
             except KeyError:
@@ -75,10 +74,10 @@ class BlastPp2Sc:
                     protein_description = gene_record[0]["Entrezgene_prot"]["Prot-ref"]["Prot-ref_desc"]
                 except KeyError:
                     protein_description = None
-            
-            protein_info = gene_record[0]["Entrezgene_locus"][0][
+
+            protein_info = gene_record[0]["Entrezgene_locus"][0]["Gene-commentary_products"][0][
                 "Gene-commentary_products"
-            ][0]["Gene-commentary_products"][0]
+            ][0]
 
             assert protein_info["Gene-commentary_type"].attributes["value"] == "peptide"
 
@@ -92,11 +91,9 @@ class BlastPp2Sc:
             )
 
     @staticmethod
-    def parse_blast_xml(blast_result: StringIO) -> SaccharomycesBlast:
+    def _parse_blast_xml(blast_result: StringIO) -> SaccharomycesBlast:
         # TODO description
-        """
-
-        """
+        """ """
         for record in NCBIXML.parse(blast_result):
             if len(record.alignments) == 0:
                 return SaccharomycesBlast(
@@ -108,9 +105,7 @@ class BlastPp2Sc:
                     acc_le=None,
                 )
 
-            filtered_alignments = list(
-                filter(lambda x: "NP" in x.accession, (i for i in record.alignments))
-            )
+            filtered_alignments = list(filter(lambda x: "NP" in x.accession, (i for i in record.alignments)))
 
             if len(filtered_alignments) == 0:
                 align = record.alignments[0]
@@ -136,15 +131,15 @@ class BlastPp2Sc:
                 )
 
     @staticmethod
-    def get_pichia_protein_fasta(protein_id: str):
-        handle = Entrez.efetch(db='protein', id=protein_id, rettype='fasta', retmode='text')
-        record = SeqIO.read(handle, 'fasta')
+    def _get_pichia_protein_fasta(protein_id: str):
+        handle = Entrez.efetch(db="protein", id=protein_id, rettype="fasta", retmode="text")
+        record = SeqIO.read(handle, "fasta")
         return str(record.seq)
 
-    def protein_blast_pp2sc(self, option: Union[Literal["local"], Literal["net"]]) -> None:
-        for pichia_data in self.get_xp_from_pas():
+    def _protein_blast_pp2sc(self, option: Union[Literal["local"], Literal["net"]]) -> None:
+        for pichia_data in self._get_xp_from_pas():
             if option == "local":
-                pichia_protein_fasta = self.get_pichia_protein_fasta(pichia_data.pp_protein_id)
+                pichia_protein_fasta = self._get_pichia_protein_fasta(pichia_data.pp_protein_id)
 
                 with tempfile.NamedTemporaryFile(mode="w", dir=TMP_FILES_FOLDER, delete=False) as tmp:
                     tmp.write(pichia_protein_fasta)
@@ -169,7 +164,7 @@ class BlastPp2Sc:
             else:
                 raise ValueError("Option ...")  # TODO
 
-            blast_result = self.parse_blast_xml(blast)
+            blast_result = self._parse_blast_xml(blast)
 
             self.full_result.append(
                 PichiaBlastFullData(
@@ -185,13 +180,3 @@ class BlastPp2Sc:
                     acc_le=blast_result.acc_le,
                 )
             )
-
-    def run(self, option: Union[Literal["local"], Literal["net"]] = "local") -> List[PichiaBlastFullData]:
-        try:
-            self.protein_blast_pp2sc(option)
-        finally:
-            if option == "local":
-                for tmp_files in os.listdir(TMP_FILES_FOLDER):
-                    os.remove(os.path.join(TMP_FILES_FOLDER, tmp_files))
-
-        return self.full_result

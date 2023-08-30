@@ -6,9 +6,7 @@ from typing import Optional
 
 def retries(times: int = 3, delay: int = 0, exception=Exception):
     # TODO description
-    """
-
-    """
+    """ """
 
     def decorator_function(func):
         @wraps(func)
