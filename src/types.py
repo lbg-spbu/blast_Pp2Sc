@@ -29,3 +29,12 @@ class PichiaBlastFullData(PichiaXP, SaccharomycesBlast):
 class PichiaSGD:
     pp_gene_name: str
     sgd_description: Optional[str]
+
+
+@dataclass
+class PichiaUniProt:
+    pp_gene_name: str
+    protein_name: Optional[str]
+    go_bio_process: Optional[str]
+    go_mol_function: Optional[str]
+    go_cell_component: Optional[str]

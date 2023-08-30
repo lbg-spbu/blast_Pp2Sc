@@ -2,6 +2,7 @@ from src.cli import parse_cli
 from src.parse_input import ParseInput
 from src.pp2sc_blast import BlastPp2Sc
 from src.sgd import get_sgd_data
+from src.uniprot import get_uniprot_data
 from src.wright_output import GenerateOutput
 
 # TODO
@@ -24,12 +25,14 @@ def main():
         if any((not gene.startswith("PAS") for gene in pichia_genes)):
             raise ValueError("Гены должны начинаться на PAS")
 
-    blast_result = BlastPp2Sc(pichia_genes=pichia_genes).run()
+    blast_result = BlastPp2Sc(pichia_genes).run()
     sgd_result = get_sgd_data(blast_result)
+    uniprot_result = get_uniprot_data(pichia_genes)
 
     GenerateOutput(
         blast_result=blast_result,
         sgd_result=sgd_result,
+        uniprot_result=uniprot_result,
         output=output_file,
     ).run()
 
