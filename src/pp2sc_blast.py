@@ -32,8 +32,10 @@ class BlastPp2Sc:
             self._protein_blast_pp2sc(option)
         finally:
             if option == "local":
-                for tmp_files in os.listdir(TMP_FILES_FOLDER):
-                    os.remove(os.path.join(TMP_FILES_FOLDER, tmp_files))
+                for tmp_file in os.listdir(TMP_FILES_FOLDER):
+                    if tmp_file.strip() == ".gitkeep":
+                        continue
+                    os.remove(os.path.join(TMP_FILES_FOLDER, tmp_file))
 
         return self.full_result
 
